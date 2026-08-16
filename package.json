@@ -1,0 +1,58 @@
+{
+  "name": "dsh-plugin-wallet",
+  "version": "1.0.0",
+  "description": "DeepSeek Harness wallet plugin: official DeepSeek API balance cards, low-balance badge, per-session token cost estimates, and a composer cost line.",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": {
+      "default": "./lib/index.js"
+    },
+    "./client": {
+      "default": "./lib/client.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/client.js"
+  ],
+  "dsh": {
+    "client": {
+      "platform": "web",
+      "inject": [],
+      "immediately": true
+    }
+  },
+  "license": "MIT",
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "deepseek",
+    "deepseek-ai",
+    "cordis",
+    "plugin",
+    "wallet",
+    "balance",
+    "pricing",
+    "cost",
+    "usage",
+    "sidebar",
+    "web-ui",
+    "badge",
+    "open-source",
+    "javascript"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/c-ling/dsh-plugin-wallet.git"
+  },
+  "bugs": {
+    "url": "https://github.com/c-ling/dsh-plugin-wallet/issues"
+  },
+  "homepage": "https://github.com/c-ling/dsh-plugin-wallet#readme",
+  "scripts": {
+    "test": "node --test"
+  }
+}
