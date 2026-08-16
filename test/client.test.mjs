@@ -41,8 +41,15 @@ function loadBundle() {
       return getSnapshot();
     },
     useEffect() {},
+    useLayoutEffect() {},
     useMemo(factory) {
       return factory();
+    },
+    useRef() {
+      return { current: null };
+    },
+    useState(initial) {
+      return [initial, function () {}];
     },
     createElement(type, props, ...children) {
       return { type, props, children };
@@ -111,8 +118,9 @@ test("client apply registers the three slot contributions with locale namespaces
   );
   assert.deepEqual(
     registrations.map(({ options }) => options.id),
-    ["dsh-plugin-wallet", "dsh-plugin-wallet", "dsh-plugin-wallet-cost"],
+    ["dsh-plugin-wallet", "dsh-plugin-wallet", "stats"],
   );
+  assert.equal(registrations[2].options.priority, -1);
   for (const { options } of registrations) assert.equal(options.locale, "dsh-plugin-wallet");
 });
 
@@ -120,4 +128,29 @@ test("client bundle contains DSW theme tokens and no hard-coded panel hex colors
   assert.match(source, /--dsw-alias-bg-layer-2/);
   assert.match(source, /--dsw-alias-state-error-primary/);
   assert.doesNotMatch(source, /#151517|#2c2c2e|#fff\b/);
+});
+
+test("client sidebar row matches the settings trigger geometry and uses preset icons", () => {
+  assert.match(source, /\.dsh-wallet-wide\{[^}]*width:calc\(100% \+ 8px\)/);
+  assert.match(source, /\.dsh-wallet-wide\{[^}]*font-size:14px;line-height:22px/);
+  assert.match(source, /\.dsh-wallet-rail\{[^}]*margin:8px 0 10px/);
+  assert.match(source, /IconDataOutline16/);
+  assert.match(source, /IconRefreshOutline14/);
+  assert.doesNotMatch(source, /background:linear-gradient\(135deg,var\(--dsw-alias-state-business-primary\)/);
+});
+
+test("client token formatting no longer appends K to the raw token count", () => {
+  assert.match(source, /var k = n \/ 1000/);
+  assert.match(source, /String\(roundedK\) \+ "K"/);
+  assert.doesNotMatch(source, /String\(Math\.round\(n\)\)\) \+ "K"/);
+});
+
+test("client wallet modal has a mask and cost disclaimer moved into a help tooltip", () => {
+  assert.match(source, /\.dsh-wallet-overlay\{[^}]*position:fixed;inset:0/);
+  assert.match(source, /\.dsh-wallet-mask\{[^}]*background:var\(--dsw-alias-bg-mask-1\)/);
+  assert.match(source, /WalletTooltip/);
+  assert.match(source, /IconQuestionOutline14/);
+  assert.doesNotMatch(source, /costPriceVersion/);
+  assert.doesNotMatch(source, /balanceGranted|balanceToppedUp|balanceKey/);
+  assert.match(source, /\.dsh-wallet-table th\.dsh-wallet-num\{text-align:right;\}/);
 });

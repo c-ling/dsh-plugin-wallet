@@ -9,15 +9,17 @@ A DeepSeek Harness wallet plugin (dual-face DSH plugin): official DeepSeek API b
 
 ## Overview
 
-- **Sidebar wallet button**: sits in the action strip above the settings button. Expanded mode shows
-  "Wallet + balance"; collapsed mode shows a round icon with a low-balance status dot.
-- **Wallet popover**: a non-fullscreen floating panel with:
-  - official DeepSeek balance (total / granted / top-up, multi-currency);
-  - masked API key suffix and source (environment / credential file);
+- **Sidebar wallet button**: sits in the action strip above the settings button and matches the
+  settings row width and font size. Expanded mode shows "Wallet + balance"; collapsed mode shows
+  a round icon with a low-balance status dot and a frosted hover popup with the balance.
+- **Wallet modal**: opens from the wallet button as a centered modal with a mask (styled like the
+  settings modal), containing:
+  - official DeepSeek balance and its "Updated" time (multi-currency);
+  - a cost estimate with a `?` tooltip explaining the estimation basis;
   - an all-session cost ranking (session, model, input/output tokens, cache hit, amount).
-- **Composer cost line**: rendered directly below the built-in stats line as
-  `≈ ¥3.87 · cache hit 89% · this session`, with a hover tooltip breaking the
-  estimate down by legacy/off-peak/peak and by model.
+- **Amount inside the session stats line**: the amount is prepended to the built-in
+  stats line as `Amount ≈ ¥3.87 | 1 turn · 68 steps | …` instead of occupying a
+  separate bottom row.
 - Balance is fetched host-side every 5 minutes; the API key never enters the browser bundle.
 
 ## Price table
@@ -81,7 +83,7 @@ sidebar badge refresh interval (default 5 minutes).
 
 Restart `dsh web` (client-modules caches package verdicts per process; new packages require a
 host restart), then hard-refresh the page. The wallet button appears above the settings button
-and the cost line appears below the session stats line.
+and the amount appears at the start of the session stats line.
 
 ## Verify
 

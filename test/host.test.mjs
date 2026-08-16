@@ -9,7 +9,9 @@ import {
   applyWalletProjectionEvent,
   classifyPricePeriod,
   collectRouteFacts,
+  collectSessionCostRows,
   costForUsage,
+  sessionCostSnapshot,
   isOfficialBaseURL,
   maskApiKey,
   normalizeBalancePayload,
@@ -304,8 +306,9 @@ test("apply registers projection and balance route; route redacts apiKey", async
   apply(ctx);
   assert.equal(captor.projections.length, 1);
   assert.equal(captor.projections[0].key, PROJECTION_KEY);
-  assert.equal(captor.routes.length, 1);
+  assert.equal(captor.routes.length, 2);
   assert.equal(captor.routes[0].path, "/dsh-plugin-wallet/balance");
+  assert.equal(captor.routes[1].path, "/dsh-plugin-wallet/session-costs");
 
   const res = fakeRes();
   await captor.routes[0].handler({ method: "GET", url: "/dsh-plugin-wallet/balance" }, res);
@@ -319,7 +322,69 @@ test("apply registers projection and balance route; route redacts apiKey", async
   const post = fakeRes();
   await captor.routes[0].handler({ method: "POST", url: "/dsh-plugin-wallet/balance" }, post);
   assert.equal(post.statusCode, 405);
+
+  const costs = fakeRes();
+  await captor.routes[1].handler({ method: "GET", url: "/dsh-plugin-wallet/session-costs" }, costs);
+  assert.equal(costs.statusCode, 200);
+  const costPayload = JSON.parse(costs.body);
+  assert.equal(costPayload.ok, true);
+  assert.deepEqual(costPayload.data.rows, []);
+
+  const costPost = fakeRes();
+  await captor.routes[1].handler({ method: "POST", url: "/dsh-plugin-wallet/session-costs" }, costPost);
+  assert.equal(costPost.statusCode, 405);
 });
+
+test("collectSessionCostRows includes persisted sessions through the cold cache", async () => {
+  let state = walletProjectionDefinition.init();
+  state = applyWalletProjectionEvent(state, headerEvent("deepseek-official", "deepseek-v4-flash"));
+  state = applyWalletProjectionEvent(state, usageEvent(1, 1, PRICE_EFFECTIVE_AT_MS - 1, { inputTokens: 1_000_000, outputTokens: 0 }));
+  const view = viewWalletProjection(state);
+  const ctx = {
+    sessionQuery: {
+      listSessions: async () => [{ header: { id: "s1" } }],
+    },
+    sessionProjectionCache: {
+      coldSnapshot: async (id) => {
+        assert.equal(id, "s1");
+        return { values: { [PROJECTION_KEY]: view } };
+      },
+    },
+    logger: { warn() {} },
+  };
+  const rows = await collectSessionCostRows(ctx);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].id, "s1");
+  assert.equal(rows[0].cost.totalCostYuan, view.totalCostYuan);
+});
+
+test("sessionCostSnapshot falls back to log replay when the cold cache throws", async () => {
+  let state = walletProjectionDefinition.init();
+  state = applyWalletProjectionEvent(state, headerEvent("deepseek-official", "deepseek-v4-flash"));
+  state = applyWalletProjectionEvent(state, usageEvent(1, 1, PRICE_EFFECTIVE_AT_MS - 1, { inputTokens: 1_000_000, outputTokens: 0 }));
+  const view = viewWalletProjection(state);
+  const ctx = {
+    sessions: { get: () => undefined },
+    sessionProjectionCache: {
+      coldSnapshot: async () => {
+        throw new Error("cache unavailable");
+      },
+    },
+    sessionQuery: {
+      readSession: async () => ({
+        events: [
+          headerEvent("deepseek-official", "deepseek-v4-flash"),
+          usageEvent(1, 1, PRICE_EFFECTIVE_AT_MS - 1, { inputTokens: 1_000_000, outputTokens: 0 }),
+        ],
+      }),
+    },
+    logger: { warn() {} },
+  };
+  const snapshot = await sessionCostSnapshot(ctx, "s1");
+  assert.equal(snapshot.values[PROJECTION_KEY].totalCostYuan, view.totalCostYuan);
+});
+
+
 
 test("projection state shape stays JSON-serializable", () => {
   let state = walletProjectionDefinition.init();
