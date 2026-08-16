@@ -48,20 +48,20 @@ Install into the web profile from GitHub (requires `pnpm` on `PATH`; otherwise u
 corepack fallback below):
 
 ```sh
-npx @deepseek-ai/dsh plugin --profile web add "github:c-ling/dsh-plugin-wallet#v1.0.0"
+npx @deepseek-ai/dsh plugin --profile web add "github:c-ling/dsh-plugin-wallet#v1.1.0"
 ```
 
 Or with an existing `dsh` binary:
 
 ```sh
-dsh plugin --profile web add "github:c-ling/dsh-plugin-wallet#v1.0.0"
+dsh plugin --profile web add "github:c-ling/dsh-plugin-wallet#v1.1.0"
 ```
 
 When `pnpm` is not on `PATH`:
 
 ```sh
 cd ~/.dsh/profiles/web
-corepack pnpm add "github:c-ling/dsh-plugin-wallet#v1.0.0"
+corepack pnpm add "github:c-ling/dsh-plugin-wallet#v1.1.0"
 ```
 
 > `dsh plugin` forwards its arguments to pnpm and fetches the package from this repo
@@ -98,9 +98,9 @@ the second should print redacted balance data (never the full API key).
 ## Update
 
 ```sh
-dsh plugin --profile web add "github:c-ling/dsh-plugin-wallet#v1.0.0"
-# or: npx @deepseek-ai/dsh plugin --profile web add "github:c-ling/dsh-plugin-wallet#v1.0.0"
-# or: cd ~/.dsh/profiles/web && corepack pnpm add "github:c-ling/dsh-plugin-wallet#v1.0.0"
+dsh plugin --profile web add "github:c-ling/dsh-plugin-wallet#v1.1.0"
+# or: npx @deepseek-ai/dsh plugin --profile web add "github:c-ling/dsh-plugin-wallet#v1.1.0"
+# or: cd ~/.dsh/profiles/web && corepack pnpm add "github:c-ling/dsh-plugin-wallet#v1.1.0"
 ```
 
 Re-running the install command with the new version pin upgrades the dependency;
