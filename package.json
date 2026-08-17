@@ -1,6 +1,6 @@
 {
   "name": "dsh-plugin-wallet",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "DeepSeek Harness wallet plugin: official DeepSeek API balance cards, low-balance badge, per-session token cost estimates, and a composer cost line.",
   "type": "module",
   "main": "lib/index.js",

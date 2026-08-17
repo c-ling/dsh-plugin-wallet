@@ -145,6 +145,17 @@ test("client token formatting no longer appends K to the raw token count", () =>
   assert.doesNotMatch(source, /String\(Math\.round\(n\)\)\) \+ "K"/);
 });
 
+test("client stats line keeps React hook order stable when there are no groups", () => {
+  const statsStart = source.indexOf("function StatsLineWithCost");
+  assert.ok(statsStart !== -1);
+  const statsBody = source.slice(statsStart);
+  const earlyReturn = statsBody.indexOf("if (groups.length === 0) return null;");
+  const layoutEffect = statsBody.indexOf("React.useLayoutEffect");
+  assert.ok(earlyReturn !== -1);
+  assert.ok(layoutEffect !== -1);
+  assert.ok(earlyReturn > layoutEffect, "early return must come after all hooks in StatsLineWithCost");
+});
+
 test("client wallet modal has a mask and cost disclaimer moved into a help tooltip", () => {
   assert.match(source, /\.dsh-wallet-overlay\{[^}]*position:fixed;inset:0/);
   assert.match(source, /\.dsh-wallet-mask\{[^}]*background:var\(--dsw-alias-bg-mask-1\)/);
