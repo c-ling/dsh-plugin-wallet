@@ -9,7 +9,7 @@ DeepSeek Harness 钱包插件（DSH 双面插件）：查看 DeepSeek 官方 API
 
 ## 简介
 
-- **侧边栏钱包按钮**：位于设置按钮上方的操作条，宽度与字号和设置按钮保持一致；
+- **侧边栏钱包按钮**：位于设置按钮上方的操作条，宽度、高度（42px）与字号和设置按钮保持一致；
   展开态显示「钱包 + 余额」，收起态显示圆形图标，hover 时弹出磨砂浮窗展示余额。
   余额低于阈值时显示红色状态点。
 - **钱包弹窗**：点击钱包按钮弹出带遮罩的居中弹窗（样式对齐设置弹窗），包含：
@@ -18,6 +18,7 @@ DeepSeek Harness 钱包插件（DSH 双面插件）：查看 DeepSeek 官方 API
   - 全部会话的成本估算排行（会话、模型、输入 / 输出 token、缓存命中、金额）。
 - **会话 stats 行内金额**：金额直接放在内置 stats 行最开头，形如
   `金额 ≈ ¥3.87 | 1 轮 · 68 步 | …`，不再单独占用底部一行。
+- **设置页（1.0.7）**：在 Harness 1.0.7 且挂载 settings 服务时，`Settings → 钱包` 可配置低余额阈值、刷新周期、超时与余额接口；无 settings 服务时继续使用 `cordis.patch.yml` 的 entry config。
 - 余额由宿主（host）每 5 分钟拉取一次；API Key 只在 host 侧使用，不会进入浏览器 bundle。
 
 ## 价格表
@@ -44,20 +45,20 @@ DeepSeek Harness 钱包插件（DSH 双面插件）：查看 DeepSeek 官方 API
 从 GitHub 安装到 web profile（需要 `pnpm` 在 `PATH` 上；没有则用下面的 corepack 方式）：
 
 ```sh
-npx @deepseek-ai/dsh plugin --profile web add "github:c-ling/dsh-plugin-wallet#v1.2.0"
+npx @deepseek-ai/dsh plugin --profile web add "github:c-ling/dsh-plugin-wallet#v1.4.0"
 ```
 
 或使用已有的 `dsh` 命令：
 
 ```sh
-dsh plugin --profile web add "github:c-ling/dsh-plugin-wallet#v1.2.0"
+dsh plugin --profile web add "github:c-ling/dsh-plugin-wallet#v1.4.0"
 ```
 
 pnpm 不在 `PATH` 上时：
 
 ```sh
 cd ~/.dsh/profiles/web
-corepack pnpm add "github:c-ling/dsh-plugin-wallet#v1.2.0"
+corepack pnpm add "github:c-ling/dsh-plugin-wallet#v1.4.0"
 ```
 
 > `dsh plugin` 把参数原样转发给 pnpm，直接从本仓库拉取包（pnpm 9+，本机需装有 `git`）。
@@ -74,6 +75,8 @@ corepack pnpm add "github:c-ling/dsh-plugin-wallet#v1.2.0"
 ```
 
 `threshold` 为低余额阈值（人民币，默认 10）；`refreshIntervalMs` 为侧边栏角标的余额刷新周期（默认 5 分钟）。
+在 Harness 1.0.7 且已挂载 settings 服务时，也可以直接打开 `Settings → 钱包` 修改这些配置，无需再编辑 `cordis.patch.yml`。
+如果本地 `link:` 开发时没有安装 `@deepseek-ai/dsh-settings`，设置页会自动降级读写 `$DSH_HOME/storages/dsh-plugin-wallet/config.json`。
 
 重启 `dsh web`（client-modules 按进程缓存包裁决，新包必须重启宿主），然后硬刷新页面，
 侧边栏设置按钮上方即出现钱包按钮，会话 stats 行最开头会出现金额。
@@ -91,9 +94,9 @@ curl -s http://127.0.0.1:3080/dsh-plugin-wallet/balance
 ## 更新
 
 ```sh
-dsh plugin --profile web add "github:c-ling/dsh-plugin-wallet#v1.2.0"
-# 或：npx @deepseek-ai/dsh plugin --profile web add "github:c-ling/dsh-plugin-wallet#v1.2.0"
-# 或：cd ~/.dsh/profiles/web && corepack pnpm add "github:c-ling/dsh-plugin-wallet#v1.2.0"
+dsh plugin --profile web add "github:c-ling/dsh-plugin-wallet#v1.4.0"
+# 或：npx @deepseek-ai/dsh plugin --profile web add "github:c-ling/dsh-plugin-wallet#v1.4.0"
+# 或：cd ~/.dsh/profiles/web && corepack pnpm add "github:c-ling/dsh-plugin-wallet#v1.4.0"
 ```
 
 用新的版本号重新执行安装命令即可升级依赖；`cordis.patch.yml` 中的 loader 行保持不变。

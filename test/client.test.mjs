@@ -74,7 +74,7 @@ test("client zh/en dictionaries have identical key sets", () => {
   assert.deepEqual(Object.keys(exports.DICT.zh).sort(), Object.keys(exports.DICT.en).sort());
 });
 
-test("client apply registers the three slot contributions with locale namespaces", () => {
+test("client apply registers the four slot contributions with locale namespaces", () => {
   const { exports } = loadBundle();
   const registrations = [];
   const injects = [];
@@ -110,19 +110,79 @@ test("client apply registers the three slot contributions with locale namespaces
   };
   exports.apply(ctx);
 
-  assert.equal(injects.length, 3);
+  assert.equal(injects.length, 4);
   for (const { factory } of injects) factory();
   assert.deepEqual(
     registrations.map(({ options }) => options.name),
-    ["sidebar.footer.action", "shell.overlay", "conversation.composer.dock"],
+    ["sidebar.footer.action", "shell.overlay", "conversation.composer.dock", "settings.section"],
   );
   assert.deepEqual(
     registrations.map(({ options }) => options.id),
-    ["dsh-plugin-wallet", "dsh-plugin-wallet", "stats"],
+    ["dsh-plugin-wallet", "dsh-plugin-wallet", "stats", "dsh-plugin-wallet"],
   );
   assert.equal(registrations[2].options.priority, -1);
   for (const { options } of registrations) assert.equal(options.locale, "dsh-plugin-wallet");
 });
+
+test("client apply registers settings.section when settingsScope is present", () => {
+  const { exports } = loadBundle();
+  const registrations = [];
+  const injects = [];
+  const ctx = {
+    get(name) {
+      if (name === "locale") {
+        return {
+          bind() {
+            return (key) => key;
+          },
+          register() {
+            return () => {};
+          },
+        };
+      }
+      if (name === "slots") {
+        return {
+          inject(key, factory) {
+            injects.push({ key, factory });
+          },
+          register(options, component) {
+            registrations.push({ options, component });
+            return () => {};
+          },
+        };
+      }
+      if (name === "sessions") return {};
+      if (name === "settingsScope") {
+        return {
+          bind() {
+            return {
+              subscribe: () => () => {},
+              getSnapshot: () => ({ status: "ready", value: {}, base: {}, user: {}, revision: 0, writable: true, mode: "host" }),
+              set: async () => {},
+              unset: async () => {},
+            };
+          },
+        };
+      }
+      return undefined;
+    },
+    effect(fn) {
+      fn();
+      return () => {};
+    },
+  };
+  exports.apply(ctx);
+
+  assert.equal(injects.length, 4);
+  for (const { factory } of injects) factory();
+  assert.deepEqual(
+    registrations.map(({ options }) => options.name),
+    ["sidebar.footer.action", "shell.overlay", "conversation.composer.dock", "settings.section"],
+  );
+  assert.equal(registrations[3].options.id, "dsh-plugin-wallet");
+  assert.equal(registrations[3].options.locale, "dsh-plugin-wallet");
+});
+
 
 test("client bundle contains DSW theme tokens and no hard-coded panel hex colors", () => {
   assert.match(source, /--dsw-alias-bg-layer-2/);

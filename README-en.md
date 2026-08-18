@@ -10,7 +10,7 @@ A DeepSeek Harness wallet plugin (dual-face DSH plugin): official DeepSeek API b
 ## Overview
 
 - **Sidebar wallet button**: sits in the action strip above the settings button and matches the
-  settings row width and font size. Expanded mode shows "Wallet + balance"; collapsed mode shows
+  settings row width, height (42px) and font size. Expanded mode shows "Wallet + balance"; collapsed mode shows
   a round icon with a low-balance status dot and a frosted hover popup with the balance.
 - **Wallet modal**: opens from the wallet button as a centered modal with a mask (styled like the
   settings modal), containing:
@@ -20,6 +20,7 @@ A DeepSeek Harness wallet plugin (dual-face DSH plugin): official DeepSeek API b
 - **Amount inside the session stats line**: the amount is prepended to the built-in
   stats line as `Amount ≈ ¥3.87 | 1 turn · 68 steps | …` instead of occupying a
   separate bottom row.
+- **Settings page (1.0.7)**: when Harness 1.0.7 is running with a settings service mounted, `Settings → Wallet` can configure the low-balance threshold, refresh interval, timeout, and balance endpoint; without a settings service the plugin keeps using the `cordis.patch.yml` entry config.
 - Balance is fetched host-side every 5 minutes; the API key never enters the browser bundle.
 
 ## Price table
@@ -48,20 +49,20 @@ Install into the web profile from GitHub (requires `pnpm` on `PATH`; otherwise u
 corepack fallback below):
 
 ```sh
-npx @deepseek-ai/dsh plugin --profile web add "github:c-ling/dsh-plugin-wallet#v1.2.0"
+npx @deepseek-ai/dsh plugin --profile web add "github:c-ling/dsh-plugin-wallet#v1.4.0"
 ```
 
 Or with an existing `dsh` binary:
 
 ```sh
-dsh plugin --profile web add "github:c-ling/dsh-plugin-wallet#v1.2.0"
+dsh plugin --profile web add "github:c-ling/dsh-plugin-wallet#v1.4.0"
 ```
 
 When `pnpm` is not on `PATH`:
 
 ```sh
 cd ~/.dsh/profiles/web
-corepack pnpm add "github:c-ling/dsh-plugin-wallet#v1.2.0"
+corepack pnpm add "github:c-ling/dsh-plugin-wallet#v1.4.0"
 ```
 
 > `dsh plugin` forwards its arguments to pnpm and fetches the package from this repo
@@ -80,6 +81,11 @@ Then add a loader row to `~/.dsh/profiles/web/cordis.patch.yml`:
 
 `threshold` is the low-balance threshold in yuan (default 10); `refreshIntervalMs` is the
 sidebar badge refresh interval (default 5 minutes).
+On Harness 1.0.7 with a settings service mounted, you can also edit these values in
+`Settings → Wallet` without touching `cordis.patch.yml`.
+If you are developing with a local `link:` install and have not installed
+`@deepseek-ai/dsh-settings`, the settings page automatically falls back to
+`$DSH_HOME/storages/dsh-plugin-wallet/config.json`.
 
 Restart `dsh web` (client-modules caches package verdicts per process; new packages require a
 host restart), then hard-refresh the page. The wallet button appears above the settings button
@@ -98,9 +104,9 @@ the second should print redacted balance data (never the full API key).
 ## Update
 
 ```sh
-dsh plugin --profile web add "github:c-ling/dsh-plugin-wallet#v1.2.0"
-# or: npx @deepseek-ai/dsh plugin --profile web add "github:c-ling/dsh-plugin-wallet#v1.2.0"
-# or: cd ~/.dsh/profiles/web && corepack pnpm add "github:c-ling/dsh-plugin-wallet#v1.2.0"
+dsh plugin --profile web add "github:c-ling/dsh-plugin-wallet#v1.4.0"
+# or: npx @deepseek-ai/dsh plugin --profile web add "github:c-ling/dsh-plugin-wallet#v1.4.0"
+# or: cd ~/.dsh/profiles/web && corepack pnpm add "github:c-ling/dsh-plugin-wallet#v1.4.0"
 ```
 
 Re-running the install command with the new version pin upgrades the dependency;
