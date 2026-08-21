@@ -6,6 +6,7 @@ import { join } from "node:path";
 
 
 import {
+  COLD_READ_BUDGET_PER_REQUEST,
   DEFAULT_CONFIG,
   PROJECTION_KEY,
   PRICE_EFFECTIVE_AT_MS,
@@ -167,6 +168,33 @@ test("wallet projection view passes its hand-rolled schema", () => {
   const view = viewWalletProjection(walletProjectionDefinition.init());
   assert.equal(walletProjectionDefinition.schema.parse(view), view);
   assert.throws(() => walletProjectionDefinition.schema.parse(null));
+});
+
+test("projection definition carries the 0.1.1-rc.1 stateSchema/wire contract", () => {
+  // Without `wire` the registry omits the key from every snapshot value set,
+  // which is what emptied the modal after the harness update.
+  assert.equal(typeof walletProjectionDefinition.wire?.view, "function");
+  assert.equal(typeof walletProjectionDefinition.wire?.viewSchema?.parse, "function");
+  assert.equal(typeof walletProjectionDefinition.stateSchema?.parse, "function");
+
+  let state = walletProjectionDefinition.init();
+  state = applyWalletProjectionEvent(state, headerEvent("deepseek-official", "deepseek-v4-flash"));
+  state = applyWalletProjectionEvent(state, usageEvent(1, 1, PRICE_EFFECTIVE_AT_MS - 1, { inputTokens: 1_000_000, outputTokens: 100 }));
+  const view = walletProjectionDefinition.wire.view(state);
+  assert.equal(walletProjectionDefinition.wire.viewSchema.parse(view), view);
+  assert.equal(view.totalCostYuan, viewWalletProjection(state).totalCostYuan);
+
+  // stateSchema round-trips a folded state (the shape checkpoint() persists).
+  const restored = walletProjectionDefinition.stateSchema.parse(JSON.parse(JSON.stringify(state)));
+  assert.equal(viewWalletProjection(restored).totalCostYuan, view.totalCostYuan);
+  // A warm restore keeps the turn/step replacement semantics: seeding from
+  // the parsed row and replaying a fresher sample replaces, never double-counts.
+  const replayed = applyWalletProjectionEvent(restored, usageEvent(1, 1, PRICE_EFFECTIVE_AT_MS - 1, { inputTokens: 500, outputTokens: 50 }));
+  assert.equal(viewWalletProjection(replayed).totalTokens.uncachedInputTokens, 500);
+  // Tolerant of partial rows, strict about garbage.
+  assert.deepEqual(walletProjectionDefinition.stateSchema.parse({}).buckets, { legacy: {}, offpeak: {}, peak: {} });
+  assert.throws(() => walletProjectionDefinition.stateSchema.parse(null));
+  assert.throws(() => walletProjectionDefinition.wire.viewSchema.parse({ totalCostYuan: "x" }));
 });
 
 // ── balance normalization ─────────────────────────────────────────────────
@@ -389,6 +417,55 @@ test("collectSessionCostRows includes persisted sessions through the cold cache"
   assert.equal(rows.length, 1);
   assert.equal(rows[0].id, "s1");
   assert.equal(rows[0].cost.totalCostYuan, view.totalCostYuan);
+});
+
+test("collectSessionCostRows prefers the zero-I/O cachedSnapshot rung", async () => {
+  let state = walletProjectionDefinition.init();
+  state = applyWalletProjectionEvent(state, headerEvent("deepseek-official", "deepseek-v4-pro"));
+  state = applyWalletProjectionEvent(state, usageEvent(1, 1, PRICE_EFFECTIVE_AT_MS - 1, { inputTokens: 2_000_000, outputTokens: 10 }));
+  const view = viewWalletProjection(state);
+  let coldCalls = 0;
+  const ctx = {
+    sessionQuery: {
+      listSessions: async () => [{ header: { id: "s1", createdAt: 1, cwd: "/w" } }],
+    },
+    sessionProjectionCache: {
+      // Zero-I/O listing read — the rung the built-in session list uses.
+      cachedSnapshot: (header) => {
+        assert.equal(header.id, "s1");
+        return { asOfSeq: 7, values: { [PROJECTION_KEY]: view } };
+      },
+      coldSnapshot: async () => {
+        coldCalls += 1;
+        throw new Error("must not refold when the listing read hits");
+      },
+    },
+    logger: { warn() {} },
+  };
+  const rows = await collectSessionCostRows(ctx);
+  assert.equal(coldCalls, 0);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].cost.totalCostYuan, view.totalCostYuan);
+});
+
+test("collectSessionCostRows bounds cold refolds per request", async () => {
+  let coldCalls = 0;
+  const ctx = {
+    sessionQuery: {
+      listSessions: async () => Array.from({ length: 30 }, (_, i) => ({ header: { id: `s${i}` } })),
+    },
+    sessionProjectionCache: {
+      // No cached row and a slow full-refold cold read for every session.
+      coldSnapshot: async () => {
+        coldCalls += 1;
+        return { values: {} };
+      },
+    },
+    logger: { warn() {} },
+  };
+  const rows = await collectSessionCostRows(ctx);
+  assert.deepEqual(rows, []);
+  assert.ok(coldCalls <= COLD_READ_BUDGET_PER_REQUEST, `expected <= ${COLD_READ_BUDGET_PER_REQUEST} cold reads, got ${coldCalls}`);
 });
 
 test("sessionCostSnapshot falls back to log replay when the cold cache throws", async () => {
